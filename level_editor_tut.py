@@ -11,10 +11,10 @@ clock = pygame.time.Clock()
 FPS = 60
 
 #game window
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 640
+SCREEN_WIDTH = 1055
+SCREEN_HEIGHT = 800
 LOWER_MARGIN = 100
-SIDE_MARGIN = 300
+SIDE_MARGIN = 364
 
 screen = pygame.display.set_mode((SCREEN_WIDTH + SIDE_MARGIN, SCREEN_HEIGHT + LOWER_MARGIN))
 pygame.display.set_caption('Level Editor')
@@ -23,13 +23,14 @@ pygame.display.set_caption('Level Editor')
 ROWS = 16
 MAX_COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
-TILE_TYPES = 21
 level = 0
 current_tile = 0
 scroll_left = False
 scroll_right = False
 scroll = 0
 scroll_speed = 1
+TILE_SIZE_W = 16
+TILE_SIZE_H = 16
 
 bg_img_list = list()
 img_list = list()
@@ -115,7 +116,8 @@ load_tileset_button = button.Button(SCREEN_WIDTH // 2 + 400, SCREEN_HEIGHT + LOW
 def load_tile_images(dir_path):
     # store tiles in a list
     img_list = []
-    for x in range(TILE_TYPES):
+    num_tiles = len([f for f in os.listdir(dir_path) if f.endswith('.png') and os.path.isfile(os.path.join(dir_path, f))])
+    for x in range(num_tiles):
         img = pygame.image.load(f'{dir_path}/tile_{x}.png').convert_alpha()
         img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
         img_list.append(img)
@@ -128,11 +130,16 @@ def create_tile_buttons(img_list):
     button_list = []
     button_col = 0
     button_row = 0
+    space_w = 40
+    space_h = 40
+    margin_w = 20
+    margin_h = 20
     for i in range(len(img_list)):
-        tile_button = button.Button(SCREEN_WIDTH + (75 * button_col) + 50, 75 * button_row + 50, img_list[i], 1)
+        tile_button = button.Button(SCREEN_WIDTH + margin_w + (TILE_SIZE_W + space_w) * button_col, 
+                margin_h + (TILE_SIZE_H + space_h) * button_row, img_list[i], 1)
         button_list.append(tile_button)
         button_col += 1
-        if button_col == 3:
+        if button_col == 5:
             button_row += 1
             button_col = 0
 
@@ -164,7 +171,7 @@ while run:
     if load_button.draw(screen):
         # load in level data
         file_path = easygui.fileopenbox()
-        if file_path is not None and os.path.exist(file_path):
+        if file_path is not None and os.path.exists(file_path):
             # reset scroll back to the start of the level
             scroll = 0
             with open(file_path, 'r') as csvfile:
@@ -178,7 +185,7 @@ while run:
         #world_data = pickle.load(pickle_in)
     if load_tileset_button.draw(screen):
         dir_path = easygui.diropenbox(msg="Choose directory containing tileset images...")
-        if dir_path is not None and os.path.exist(dir_path):
+        if dir_path is not None and os.path.exists(dir_path):
             img_list = load_tile_images(dir_path)
             button_list = create_tile_buttons(img_list)
 
@@ -187,7 +194,6 @@ while run:
 
     # choose a tile
     button_count = 0
-    current_tile = None
     for button_count, i in enumerate(button_list):
         if i.draw(screen):
             current_tile = button_count
