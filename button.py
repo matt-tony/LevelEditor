@@ -2,30 +2,46 @@ import pygame
 
 
 class Button():
-	def __init__(self, x, y, image, scale):
-		width = image.get_width()
-		height = image.get_height()
-		self.image = pygame.transform.scale(image, (int(width * scale), int(height * scale)))
-		self.rect = self.image.get_rect()
-		self.rect.topleft = (x, y)
-		self.clicked = False
+    DEFAULT = 0
+    HOVERING = 1
+    CLICKED = 2
+    def __init__(self, x, y, image_list, scale):
+        self.image_list = image_list
+        self.btn_state = self.DEFAULT
+        self.scale = scale
+        self.__update_image__()
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
+        self.clicked = False
 
-	def draw(self, surface):
-		action = False
+    def __update_image__(self):
+        img = self.image_list[self.btn_state]
+        self.image = pygame.transform.scale(img, (int(img.get_width() * self.scale), 
+            int(img.get_height() * self.scale)))
 
-		#get mouse position
-		pos = pygame.mouse.get_pos()
+    def draw(self, surface):
+        action = False
+        self.btn_state = self.DEFAULT
 
-		#check mouseover and clicked conditions
-		if self.rect.collidepoint(pos):
-			if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
-				action = True
-				self.clicked = True
+        # get mouse position
+        pos = pygame.mouse.get_pos()
 
-		if pygame.mouse.get_pressed()[0] == 0:
-			self.clicked = False
+        # check mouseover and clicked conditions
+        if self.rect.collidepoint(pos):
+            self.btn_state = self.HOVERING
+            if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
+                self.clicked = True
+                self.btn_state = self.CLICKED
 
-		#draw button
-		surface.blit(self.image, (self.rect.x, self.rect.y))
+        if pygame.mouse.get_pressed()[0] == 0 and self.clicked:
+            print("click release")
+            action = True
+            self.clicked = False
+            self.btn_state = self.HOVERING
 
-		return action
+        #draw button
+        self.__update_image__()
+        surface.blit(self.image, (self.rect.x, self.rect.y))
+
+        return action
+

@@ -105,12 +105,21 @@ def draw_world():
 
 # create buttons
 save_img = pygame.image.load('img/save_btn.png').convert_alpha()
+save_img_hovering = pygame.image.load('img/save_btn_hovering.png').convert_alpha()
+save_img_clicked = pygame.image.load('img/save_btn_clicked.png').convert_alpha()
 load_img = pygame.image.load('img/load_btn.png').convert_alpha()
+load_img_hovering = pygame.image.load('img/load_btn_hovering.png').convert_alpha()
+load_img_clicked = pygame.image.load('img/load_btn_clicked.png').convert_alpha()
 load_tileset_img = pygame.image.load('img/load_tileset_btn.png').convert_alpha()
+load_tileset_img_hovering = pygame.image.load('img/load_tileset_btn_hovering.png').convert_alpha()
+load_tileset_img_clicked = pygame.image.load('img/load_tileset_btn_clicked.png').convert_alpha()
 
-save_button = button.Button(SCREEN_WIDTH // 2, SCREEN_HEIGHT + LOWER_MARGIN - 50, save_img, 1)
-load_button = button.Button(SCREEN_WIDTH // 2 + 200, SCREEN_HEIGHT + LOWER_MARGIN - 50, load_img, 1)
-load_tileset_button = button.Button(SCREEN_WIDTH // 2 + 400, SCREEN_HEIGHT + LOWER_MARGIN - 50, load_tileset_img, 1)
+save_button = button.Button(SCREEN_WIDTH // 2, SCREEN_HEIGHT + LOWER_MARGIN - 50, 
+        [save_img, save_img_hovering, save_img_clicked], 1)
+load_button = button.Button(SCREEN_WIDTH // 2 + 200, SCREEN_HEIGHT + LOWER_MARGIN - 50, 
+        [load_img, load_img_hovering, load_img_clicked], 1)
+load_tileset_button = button.Button(SCREEN_WIDTH // 2 + 400, SCREEN_HEIGHT + LOWER_MARGIN - 50, 
+        [load_tileset_img, load_tileset_img_hovering, load_tileset_img_clicked], 1)
 
 
 def load_tile_images(dir_path):
@@ -157,7 +166,7 @@ while run:
     draw_text(f'Level: {level}', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 90)
     draw_text('Press UP or DOWN to change level', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 60)
 
-    #save and load data
+    # save and load data
     if save_button.draw(screen):
         # save level data
         with open(f'level{level}_data.csv', 'w', newline='') as csvfile:
@@ -202,19 +211,19 @@ while run:
     if current_tile:
         pygame.draw.rect(screen, RED, button_list[current_tile].rect, 3)
 
-    #scroll the map
+    # scroll the map
     if scroll_left == True and scroll > 0:
         scroll -= 5 * scroll_speed
     if scroll_right == True and scroll < (MAX_COLS * TILE_SIZE) - SCREEN_WIDTH:
         scroll += 5 * scroll_speed
 
-    #add new tiles to the screen
-    #get mouse position
+    # add new tiles to the screen
+    # get mouse position
     pos = pygame.mouse.get_pos()
     x = (pos[0] + scroll) // TILE_SIZE
     y = pos[1] // TILE_SIZE
 
-    #check that the coordinates are within the tile area
+    # check that the coordinates are within the tile area
     if pos[0] < SCREEN_WIDTH and pos[1] < SCREEN_HEIGHT:
         #update tile value
         if pygame.mouse.get_pressed()[0] == 1:
@@ -222,8 +231,7 @@ while run:
                 world_data[y][x] = current_tile
         if pygame.mouse.get_pressed()[2] == 1:
             world_data[y][x] = -1
-
-
+ 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
                 run = False
@@ -240,7 +248,6 @@ while run:
             if event.key == pygame.K_RSHIFT:
                 scroll_speed = 5
 
-
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_LEFT:
                 scroll_left = False
@@ -248,7 +255,6 @@ while run:
                 scroll_right = False
             if event.key == pygame.K_RSHIFT:
                 scroll_speed = 1
-
 
     pygame.display.update()
 
