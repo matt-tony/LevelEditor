@@ -15,6 +15,9 @@ class Button():
         self.clicked = False
 
     def __update_image__(self):
+        if self.btn_state >= len(self.image_list):
+            self.btn_state = self.DEFAULT
+
         img = self.image_list[self.btn_state]
         self.image = pygame.transform.scale(img, (int(img.get_width() * self.scale), 
             int(img.get_height() * self.scale)))
@@ -34,7 +37,6 @@ class Button():
                 self.btn_state = self.CLICKED
 
         if pygame.mouse.get_pressed()[0] == 0 and self.clicked:
-            print("click release")
             action = True
             self.clicked = False
             self.btn_state = self.HOVERING
