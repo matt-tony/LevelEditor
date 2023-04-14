@@ -5,6 +5,7 @@ class Button():
     DEFAULT = 0
     HOVERING = 1
     CLICKED = 2
+
     def __init__(self, x, y, image_list, scale):
         self.image_list = image_list
         self.btn_state = self.DEFAULT
@@ -22,8 +23,7 @@ class Button():
         self.image = pygame.transform.scale(img, (int(img.get_width() * self.scale), 
             int(img.get_height() * self.scale)))
 
-    def draw(self, surface):
-        action = False
+    def update(self):
         self.btn_state = self.DEFAULT
 
         # get mouse position
@@ -41,9 +41,31 @@ class Button():
             self.clicked = False
             self.btn_state = self.HOVERING
 
-        #draw button
-        self.__update_image__()
-        surface.blit(self.image, (self.rect.x, self.rect.y))
+    def check_button_click(self):
+        # get mouse position
+        pos = pygame.mouse.get_pos()
 
-        return action
+        # check mouseover and clicked conditions
+        if self.rect.collidepoint(pos):
+            if pygame.mouse.get_pressed()[0] == 1:
+                self.btn_state = self.CLICKED
+                return True
+
+        return False
+
+    def check_button_up(self):
+        # get mouse position
+        pos = pygame.mouse.get_pos()
+
+        if self.rect.collidepoint(pos) and pygame.mouse.get_pressed()[0] == 0:
+            self.btn_state = self.HOVERING
+        else:
+            self.btn_state = self.DEFAULT
+
+    def draw(self, surface):
+        # update button image
+        self.__update_image__()
+
+        # draw button
+        surface.blit(self.image, (self.rect.x, self.rect.y))
 
