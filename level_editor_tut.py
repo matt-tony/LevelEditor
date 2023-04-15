@@ -47,6 +47,7 @@ current_tile = None
 # define fonts
 font = pygame.font.SysFont('Futura', 30)
 font_small = pygame.font.SysFont('Futura', 20)
+font_graph = pygame.font.SysFont('Futura', 25, bold=True)
 
 # gui elements
 ui_manager = pygame_gui.UIManager((800, 600), "gui_theme_v2.json")
@@ -128,6 +129,10 @@ img_graph_mode = pygame.transform.scale(img_graph_mode, (tileset_config.tile_siz
 graph_mode_btn = button.Button(SCREEN_WIDTH + 20, SCREEN_HEIGHT + LOWER_MARGIN - 80, [img_graph_mode], 1)
 special_button_list.append(graph_mode_btn)
 special_btn_idx = None
+img_node = pygame.image.load('img/node.png').convert_alpha()
+img_node = pygame.transform.scale(img_node, (int(tileset_config.tile_size / 2), int(tileset_config.tile_size / 2)))
+img_node_selected = pygame.image.load('img/node_selected.png').convert_alpha()
+img_node_selected = pygame.transform.scale(img_node_selected, (int(tileset_config.tile_size / 2), int(tileset_config.tile_size / 2)))
 
 
 def load_tile_images(dir_path):
@@ -228,7 +233,7 @@ while run:
     draw_bg()
     draw_grid()
     world_data.draw_world(screen, scroll, img_list)
-    graph_data.draw_graph(screen, scroll)
+    graph_data.draw_graph(screen, scroll, img_node, img_node_selected, font_graph)
 
     draw_text(screen, f'Current Level: {world_data.level}', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 90)
     draw_text(screen, '(Press UP or DOWN to change level)', font_small, WHITE, 200, SCREEN_HEIGHT + LOWER_MARGIN - 85)

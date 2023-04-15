@@ -5,8 +5,8 @@ from collections import defaultdict
 
 
 class TilesetConfig:
-    def __init__(self, tileset_path_dir, screen_height, rows, tile_size_w=16, tile_size_h=16, tileset_scale_factor=2):
-        self.tileset_path_dir = tileset_path_dir
+    def __init__(self, tileset_dir_path, screen_height, rows, tile_size_w=16, tile_size_h=16, tileset_scale_factor=2):
+        self.tileset_dir_path = tileset_dir_path
         self.tile_size_w = tile_size_w
         self.tile_size_h = tile_size_h
         self.tile_scale_factor = tileset_scale_factor
@@ -73,11 +73,6 @@ class GraphData:
         self.max_rows = max_rows
         self.max_cols = max_cols
         self.tileset_config = tileset_config
-        self.font = pygame.font.SysFont('Futura', 25, bold=True)
-        self.img_node = pygame.image.load('img/node.png').convert_alpha()
-        self.img_node = pygame.transform.scale(self.img_node, (int(self.tileset_config.tile_size / 2), int(self.tileset_config.tile_size / 2)))
-        self.img_node_selected = pygame.image.load('img/node_selected.png').convert_alpha()
-        self.img_node_selected = pygame.transform.scale(self.img_node_selected, (int(self.tileset_config.tile_size / 2), int(self.tileset_config.tile_size / 2)))
 
         # init graph data
         for row in range(self.max_rows):
@@ -85,7 +80,7 @@ class GraphData:
             self.data.append(r)
 
     # function for drawing graph data
-    def draw_graph(self, screen, scroll):
+    def draw_graph(self, screen, scroll, img_node, img_node_selected, font):
         # draw edges
         for node1, node2 in self.edges:
             y1, x1 = self.node_positions[node1]
@@ -102,11 +97,11 @@ class GraphData:
                 if node >= 0:
                     x_pos = x * self.tileset_config.tile_size + self.tileset_config.tile_size/4 - scroll
                     y_pos = y * self.tileset_config.tile_size + self.tileset_config.tile_size/4
-                    img = self.img_node_selected if node == self.node_selected else self.img_node
+                    img = img_node_selected if node == self.node_selected else img_node
 
                     screen.blit(img, (x_pos, y_pos))
                     font_x_pos = x_pos + self.tileset_config.tile_size/(6 + len(str(node)))
-                    draw_text(screen, f'{node}', self.font, GRAY, font_x_pos, y_pos + self.tileset_config.tile_size/6)
+                    draw_text(screen, f'{node}', font, GRAY, font_x_pos, y_pos + self.tileset_config.tile_size/6)
 
     def update_value(self, x, y):
          if pygame.mouse.get_pressed()[0] == 1:
