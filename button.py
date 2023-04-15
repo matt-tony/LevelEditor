@@ -1,4 +1,11 @@
 import pygame 
+from enum import Enum
+
+
+class MouseClick(Enum):
+    LEFT = 1
+    RIGHT = 2
+    MIDDLE = 3
 
 
 class Button():
@@ -49,9 +56,11 @@ class Button():
         if self.rect.collidepoint(pos):
             if pygame.mouse.get_pressed()[0] == 1:
                 self.btn_state = self.CLICKED
-                return True
+                return MouseClick.LEFT
+            elif pygame.mouse.get_pressed()[2] == 1:
+                return MouseClick.RIGHT
 
-        return False
+        return None
 
     def check_button_up(self):
         # get mouse position

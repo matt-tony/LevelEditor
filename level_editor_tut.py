@@ -9,6 +9,9 @@ import csv
 import pickle
 import json
 from collections import defaultdict
+from level_data import TilesetConfig, WorldData, GraphData
+from level_colors import *
+from level_text import *
 
 
 pygame.init()
@@ -28,29 +31,22 @@ pygame.display.set_caption('Level Editor')
 # define game variables
 ROWS = 16
 MAX_COLS = 150
-TILE_SIZE = SCREEN_HEIGHT // ROWS
-level = 0
-current_tile = None
 scroll_left = False
 scroll_right = False
 scroll = 0
 scroll_speed = 1
-TILE_SIZE_W = 16
-TILE_SIZE_H = 16
-tileset_dir_path = None
-
-bg_img_list = list()
 img_list = list()
 button_list = list()
+bg_img_list = list()
 
-# define colours
-RED = (200, 25, 25)
-GREEN = (144, 201, 120)
-BLUE = (80, 120, 200)
-YELLOW = (200, 200, 20)
-MAGENTA = (20, 100, 200)
-GRAY = (50, 50, 50)
-WHITE = (255, 255, 255)
+tileset_config = TilesetConfig("/home/matt/projects/Escaper/res/tiles/station", SCREEN_HEIGHT, ROWS)
+world_data = WorldData(ROWS, MAX_COLS, tileset_config)
+graph_data = GraphData(ROWS, MAX_COLS, tileset_config)
+current_tile = None 
+
+# define fonts
+font = pygame.font.SysFont('Futura', 30)
+font_small = pygame.font.SysFont('Futura', 20)
 
 # gui elements
 ui_manager = pygame_gui.UIManager((800, 600), "gui_theme_v2.json")
@@ -71,48 +67,6 @@ def load_background_images(bg_img_path_list):
 #mountain_img = pygame.image.load('img/Background/mountain.png').convert_alpha()
 #sky_img = pygame.image.load('img/Background/sky_cloud.png').convert_alpha()
 
-# define fonts
-font = pygame.font.SysFont('Futura', 30)
-font_small = pygame.font.SysFont('Futura', 20)
-font_graph = pygame.font.SysFont('Futura', 25, bold=True)
-
-# create empty tile list
-# lyr 0: Background image layer
-# lyr 1: Background layer 1 (default tile layer)
-# lyr 2: Background layer 2
-# lyr 3: Background layer 3
-# lyr 4: Foreground layer
-# Note that the Background image layer is reserved for a background image
-MAX_LAYERS = 4
-lyr_descr = {1: "Default background tile layer", 2: "Layer used to set elevators and stuff with alpha channel", 
-        3: "Layer that can be used to set decorations (e.g. blood traces, dust, etc.)", 
-        4: "Foreground layer that stores stuff that is in front of the player"}
-curr_lyr = 1
-world_data = defaultdict(list)
-for lyr in range(MAX_LAYERS):
-    for row in range(ROWS):
-        r = [-1] * MAX_COLS
-        world_data[lyr].append(r)
-
-    # create ground
-    for tile in range(0, MAX_COLS):
-        world_data[lyr][ROWS - 1][tile] = 0
-
-# init graph data
-graph_data = list()
-node_positions = dict()
-edges = set()
-node_id = 0
-node_selected = -1
-for row in range(ROWS):
-    r = [-1] * MAX_COLS
-    graph_data.append(r)
-
-# function for outputting text onto the screen
-def draw_text(text, font, text_col, x, y):
-    img = font.render(text, True, text_col)
-    screen.blit(img, (x, y))
-
 
 # create function for drawing background
 def draw_bg():
@@ -128,43 +82,11 @@ def draw_bg():
 def draw_grid():
     # vertical lines
     for c in range(MAX_COLS + 1):
-        pygame.draw.line(screen, WHITE, (c * TILE_SIZE - scroll, 0), (c * TILE_SIZE - scroll, SCREEN_HEIGHT))
+        pygame.draw.line(screen, WHITE, (c * tileset_config.tile_size - scroll, 0), (c * tileset_config.tile_size - scroll, SCREEN_HEIGHT))
     # horizontal lines
     for c in range(ROWS + 1):
-        pygame.draw.line(screen, WHITE, (0, c * TILE_SIZE), (SCREEN_WIDTH, c * TILE_SIZE))
+        pygame.draw.line(screen, WHITE, (0, c * tileset_config.tile_size), (SCREEN_WIDTH, c * tileset_config.tile_size))
 
-
-# function for drawing the world tiles
-def draw_world():
-    if len(img_list) > 0:
-        for lyr in range(MAX_LAYERS):
-            for y, row in enumerate(world_data[lyr]):
-                for x, tile in enumerate(row):
-                    if tile >= 0:
-                        screen.blit(img_list[tile], (x * TILE_SIZE - scroll, y * TILE_SIZE))
-
-# function for drawing graph data
-def draw_graph():
-    # draw edges
-    for node1, node2 in edges:
-        y1, x1 = node_positions[node1]
-        y2, x2 = node_positions[node2]
-        x_pos_start = x1 * TILE_SIZE + TILE_SIZE/2 - scroll
-        y_pos_start = y1 * TILE_SIZE + TILE_SIZE/2
-        x_pos_end = x2 * TILE_SIZE + TILE_SIZE/2 - scroll
-        y_pos_end = y2 * TILE_SIZE + TILE_SIZE/2
-        pygame.draw.line(screen, GRAY, (x_pos_start, y_pos_start), (x_pos_end, y_pos_end), width=5)
-
-    # draw nodes
-    for y, row in enumerate(graph_data):
-        for x, node in enumerate(row):
-            if node >= 0:
-                x_pos = x * TILE_SIZE + TILE_SIZE/4 - scroll
-                y_pos = y * TILE_SIZE + TILE_SIZE/4
-                img = img_node_selected if node == node_selected else img_node
-                screen.blit(img, (x_pos, y_pos))
-                font_x_pos = x_pos + TILE_SIZE/(6 + len(str(node)))
-                draw_text(f'{node}', font_graph, GRAY, font_x_pos, y_pos + TILE_SIZE/6)
 
 # create buttons
 # save and load buttons
@@ -202,11 +124,7 @@ special_button_list = list()
 
 # init graph related attributes
 img_graph_mode = pygame.image.load('img/graph_mode.png').convert_alpha()
-img_graph_mode = pygame.transform.scale(img_graph_mode, (TILE_SIZE, TILE_SIZE))
-img_node = pygame.image.load('img/node.png').convert_alpha()
-img_node = pygame.transform.scale(img_node, (TILE_SIZE / 2, TILE_SIZE / 2))
-img_node_selected = pygame.image.load('img/node_selected.png').convert_alpha()
-img_node_selected = pygame.transform.scale(img_node_selected, (TILE_SIZE / 2, TILE_SIZE / 2))
+img_graph_mode = pygame.transform.scale(img_graph_mode, (tileset_config.tile_size, tileset_config.tile_size))
 graph_mode_btn = button.Button(SCREEN_WIDTH + 20, SCREEN_HEIGHT + LOWER_MARGIN - 80, [img_graph_mode], 1)
 special_button_list.append(graph_mode_btn)
 special_btn_idx = None
@@ -218,7 +136,7 @@ def load_tile_images(dir_path):
     num_tiles = len([f for f in os.listdir(dir_path) if f.endswith('.png') and os.path.isfile(os.path.join(dir_path, f))])
     for x in range(num_tiles):
         img = pygame.image.load(f'{dir_path}/tile_{x}.png').convert_alpha()
-        img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
+        img = pygame.transform.scale(img, (tileset_config.tile_size, tileset_config.tile_size))
         img_list.append(img)
 
     return img_list
@@ -233,11 +151,11 @@ def create_tile_buttons(img_list):
     margin_w = 20
     margin_h = 20
     for i in range(len(img_list)):
-        tile_button = button.Button(SCREEN_WIDTH + margin_w + (TILE_SIZE_W + space_w) * button_col, 
-                margin_h + (TILE_SIZE_H + space_h) * button_row, [img_list[i]], 1)
+        tile_button = button.Button(SCREEN_WIDTH + margin_w + (tileset_config.tile_size_w + space_w) * button_col, 
+                margin_h + (tileset_config.tile_size_h + space_h) * button_row, [img_list[i]], 1)
         button_list.append(tile_button)
         button_col += 1
-        if button_col == 8:
+        if button_col == tileset_config.TILE_PANEL_COLS:
             button_row += 1
             button_col = 0
 
@@ -259,12 +177,9 @@ def save_map(file_path_name):
 
     # alternative pickle method
     pickle_out = open(file_path_name, 'wb')
-    pickle.dump({"map_data": world_data, 
-                 "tileset": tileset_dir_path, 
-                 "tile_size": (TILE_SIZE_W, TILE_SIZE_H),
-                 "graph_nodes": graph_data, 
-                 "graph_node_positions": node_positions,
-                 "graph_edges": edges}, pickle_out)
+    pickle.dump({"world_data": world_data, 
+                 "tileset_config": tileset_config,
+                 "graph_data": graph_data}, pickle_out)
     pickle_out.close()
 
 def load_map(file_path):
@@ -285,17 +200,14 @@ def load_map(file_path):
        #                 world_data[lyr][x][y] = int(tile)
        # img_list, button_list, tileset_dir_path = load_tileset(level_data_dict["tileset"])
         # alternative pickle method
-        world_data = None
         pickle_in = open(file_path, 'rb')
         data_dict = pickle.load(pickle_in)
-        tileset_dir_path = data_dict["tileset"]
-        world_data = data_dict["map_data"]
+        tileset_config = data_dict["tileset_config"]
+        world_data = data_dict["world_data"]
         graph_data = data_dict["graph_data"]
-        node_positions = data_dict["graph_node_positions"]
-        edges = data_dict["graph_edges"]
-        img_list, button_list = load_tileset(tileset_dir_path)
+        img_list, button_list = load_tileset(tileset_config.tileset_dir_path)
 
-        return world_data, graph_data, node_positions, edges, tileset_dir_path, img_list, button_list
+        return world_data, graph_data, tileset_config, img_list, button_list
 
 def load_tileset(dir_path):
     img_list = button_list = list()
@@ -315,14 +227,14 @@ while run:
 
     draw_bg()
     draw_grid()
-    draw_world()
-    draw_graph()
+    world_data.draw_world(screen, scroll, img_list)
+    graph_data.draw_graph(screen, scroll)
 
-    draw_text(f'Current Level: {level}', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 90)
-    draw_text('(Press UP or DOWN to change level)', font_small, WHITE, 200, SCREEN_HEIGHT + LOWER_MARGIN - 85)
-    draw_text(f'Current Layer: {curr_lyr}', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 60)
-    draw_text(f'(Press 1-{MAX_LAYERS} to change layer)', font_small, WHITE, 200, SCREEN_HEIGHT + LOWER_MARGIN - 55)
-    draw_text(f'{lyr_descr[curr_lyr]}', font_small, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 40)
+    draw_text(screen, f'Current Level: {world_data.level}', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 90)
+    draw_text(screen, '(Press UP or DOWN to change level)', font_small, WHITE, 200, SCREEN_HEIGHT + LOWER_MARGIN - 85)
+    draw_text(screen, f'Current Layer: {world_data.curr_lyr}', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 60)
+    draw_text(screen, f'(Press 1-{world_data.MAX_LAYERS} to change layer)', font_small, WHITE, 200, SCREEN_HEIGHT + LOWER_MARGIN - 55)
+    draw_text(screen, f'{world_data.LYR_DESCR[world_data.curr_lyr]}', font_small, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 40)
 
     # draw buttons
     save_button.draw(screen)
@@ -339,6 +251,12 @@ while run:
     for btn in button_list:
         btn.draw(screen)
 
+    # draw obstacle markers
+    for obstacle_idx in tile_obstacles:
+        x_pos = SCREEN_WIDTH + (int(obstacle_idx % tileset_config.TILE_PANEL_COLS) * tileset_config.tile_size_w + tileset_config.tile_size_w) * tileset_config.tile_scale_factor
+        y_pos = (int(obstacle_idx / tileset_config.TILE_PANEL_COLS) * tileset_config.tile_size_w + tileset_config.size_h / 2) * tileset_config.tile_scale_factor
+        screen.blit(img_obstacle, (x_pos, y_pos))
+
     # highlight the selected tile or special button
     if current_tile is not None and special_btn_idx is None:
         pygame.draw.rect(screen, RED, button_list[current_tile].rect, 3)
@@ -348,7 +266,7 @@ while run:
     # scroll the map
     if scroll_left == True and scroll > 0:
         scroll -= 5 * scroll_speed
-    if scroll_right == True and scroll < (MAX_COLS * TILE_SIZE) - SCREEN_WIDTH:
+    if scroll_right == True and scroll < (MAX_COLS * tileset_config.tile_size) - SCREEN_WIDTH:
         scroll += 5 * scroll_speed
 
     # update buttons
@@ -384,7 +302,7 @@ while run:
                 save_map(event.text)
             if event.ui_element == file_dialog_load:
                 print(f"loading data from file {event.text}")
-                world_data, graph_data, node_positions, edges, tileset_dir_path, img_list, button_list = load_map(event.text)
+                world_data, graph_data, tileset_config, img_list, button_list = load_map(event.text)
             if event.ui_element == file_dialog_tileset:
                 print(f"loading tileset {event.text}")
                 tileset_dir_path = event.text
@@ -394,33 +312,18 @@ while run:
         if event.type == pygame.MOUSEBUTTONDOWN:
             # get mouse position
             pos = pygame.mouse.get_pos()
-            x = (pos[0] + scroll) // TILE_SIZE
-            y = pos[1] // TILE_SIZE
+            x = (pos[0] + scroll) // tileset_config.tile_size
+            y = pos[1] // tileset_config.tile_size
 
             # check that the coordinates are within the map area
             if pos[0] < SCREEN_WIDTH and pos[1] < SCREEN_HEIGHT:
                 # update tile value
                 if current_tile is not None:
-                    if pygame.mouse.get_pressed()[0] == 1:
-                        if world_data[curr_lyr][y][x] != current_tile:
-                            world_data[curr_lyr][y][x] = current_tile
-                    if pygame.mouse.get_pressed()[2] == 1:
-                        world_data[curr_lyr][y][x] = -1
-                # check graph mode 
+                    world_data.update_tile_value(x, y, current_tile)
+                
+                # update graph value 
                 if special_btn_idx == GRAPH_IDX:
-                    if pygame.mouse.get_pressed()[0] == 1:
-                        if graph_data[y][x] == -1:
-                            graph_data[y][x] = node_id
-                            node_positions[node_id] = (y, x)
-                            node_id += 1
-                            node_selected = -1
-                        elif node_selected == -1:
-                            node_selected = graph_data[y][x]
-                        else:
-                            edges.add((node_selected, graph_data[y][x]))
-                            node_selected = graph_data[y][x]
-                    if pygame.mouse.get_pressed()[2] == 1:
-                        graph_data[y][x] = -1
+                    graph_data.update_value(x, y)
             else:
                 if save_button.check_button_click():
                     open_save_dialog = True
@@ -430,9 +333,12 @@ while run:
                     open_load_tileset_dialog = True
 
                 for idx, btn in enumerate(button_list):
-                    if btn.check_button_click():
+                    button_click = btn.check_button_click()
+                    if button_click == button.MouseClick.LEFT:
                         current_tile = idx
                         special_btn_idx = None
+                    elif current_tile == idx and button_click == button.MouseClick.RIGHT:
+                        tile_obstacles.append(idx)
 
                 for idx, btn in enumerate(special_button_list):
                     if btn.check_button_click():
@@ -461,13 +367,13 @@ while run:
             if event.key == pygame.K_RSHIFT:
                 scroll_speed = 5
             if event.key == pygame.K_1:
-                curr_lyr = 1
+                world_data.curr_lyr = 1
             if event.key == pygame.K_2:
-                curr_lyr = 2
+                world_data.curr_lyr = 2
             if event.key == pygame.K_3:
-                curr_lyr = 3
+                world_data.curr_lyr = 3
             if event.key == pygame.K_4:
-                curr_lyr = 4
+                world_data.curr_lyr = 4
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_LEFT:
