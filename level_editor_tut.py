@@ -9,7 +9,7 @@ import csv
 import pickle
 import json
 from collections import defaultdict
-from level_data import TilesetConfig, WorldData, GraphData
+from level_data import TilesetConfig, CharacterData, WorldData, GraphData
 from level_colors import *
 from level_text import *
 from dataclasses import dataclass
@@ -18,7 +18,7 @@ from dataclasses import dataclass
 # panel config
 @dataclass
 class PanelConfig:
-    space_w: int = 40
+    space_w: int = 60
     space_h: int = 40
     margin_w: int = 20
     margin_h: int = 20
@@ -29,16 +29,17 @@ class LevelEditorMain:
     SCREEN_WIDTH = 1055
     SCREEN_HEIGHT = 800
     LOWER_MARGIN = 100
-    SIDE_MARGIN = 500
+    SIDE_MARGIN = 650
     ROWS = 16
     MAX_COLS = 150
     # FPS
     FPS = 30
     # special button indices
     GRAPH_IDX = 0
-    CHARACTER_IDX = 1
-    TRIGGER_IDX = 2
-    ACTION_IDX = 3
+    PLAYER_IDX = 1
+    ENEMY_IDX = 2
+    TRIGGER_IDX = 3
+    ACTION_IDX = 4
 
     def __init__(self):
         pygame.init()
@@ -46,6 +47,7 @@ class LevelEditorMain:
          
         self.screen = pygame.display.set_mode((self.SCREEN_WIDTH + self.SIDE_MARGIN, self.SCREEN_HEIGHT + self.LOWER_MARGIN))
         pygame.display.set_caption('Level Editor')
+        pygame.display.set_icon(pygame.image.load('img/level_editor_icon.png'))
 
         # define editor variables
         self.panel_config = PanelConfig()
@@ -67,8 +69,12 @@ class LevelEditorMain:
 
         # background data
         self.bg_img_list = list()
+        #pine1_img = pygame.image.load('img/Background/pine1.png').convert_alpha()
+        #pine2_img = pygame.image.load('img/Background/pine2.png').convert_alpha()
+        #mountain_img = pygame.image.load('img/Background/mountain.png').convert_alpha()
+        #sky_img = pygame.image.load('img/Background/sky_cloud.png').convert_alpha()
 
-        # define self.fonts
+        # define fonts
         self.font = pygame.font.SysFont('Futura', 30)
         self.font = pygame.font.SysFont('Futura', 20)
         self.font_graph = pygame.font.SysFont('Futura', 25, bold=True)
@@ -104,21 +110,36 @@ class LevelEditorMain:
 
         # special buttons
         self.special_button_list = list()
+        self.special_btn_idx = None
 
-        # init graph related attributes
+        # graph button
         img_graph_mode = pygame.image.load('img/graph_mode.png').convert_alpha()
         img_graph_mode = pygame.transform.scale(img_graph_mode, (self.tileset_config.tile_size, self.tileset_config.tile_size))
         graph_mode_btn = button.Button(self.SCREEN_WIDTH + 20, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 80, [img_graph_mode], 1)
         self.special_button_list.append(graph_mode_btn)
-        self.special_btn_idx = None
+
+        # load graph node images
         self.img_node = pygame.image.load('img/node.png').convert_alpha()
         self.img_node = pygame.transform.scale(self.img_node, (int(self.tileset_config.tile_size / 2), int(self.tileset_config.tile_size / 2)))
         self.img_node_selected = pygame.image.load('img/node_selected.png').convert_alpha()
         self.img_node_selected = pygame.transform.scale(self.img_node_selected, (int(self.tileset_config.tile_size / 2), int(self.tileset_config.tile_size / 2)))
 
+        # player button
+        img_player_btn = pygame.image.load('img/player_btn.png').convert_alpha()
+        img_player_btn = pygame.transform.scale(img_player_btn, (self.tileset_config.tile_size, self.tileset_config.tile_size))
+        player_btn = button.Button(self.SCREEN_WIDTH + graph_mode_btn.rect.width + 20, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 80, [img_player_btn], 1)
+        self.special_button_list.append(player_btn)
+        self.img_player_instance = pygame.image.load('img/player_instance.png').convert_alpha()
+
+        # enemy button
+        img_enemy_btn = pygame.image.load('img/enemy_btn.png').convert_alpha()
+        img_enemy_btn = pygame.transform.scale(img_enemy_btn, (self.tileset_config.tile_size, self.tileset_config.tile_size))
+        enemy_btn = button.Button(self.SCREEN_WIDTH + graph_mode_btn.rect.width + player_btn.rect.width + 20, self.SCREEN_HEIGHT + self.LOWER_MARGIN -80, [img_enemy_btn], 1)
+        self.special_button_list.append(enemy_btn)
+        self.img_enemy_instance = pygame.image.load('img/enemy_instance.png').convert_alpha()
+
         # obstacle marker
         self.img_obstacle = pygame.image.load('img/wall.png').convert_alpha()
-        self.tile_obstacles = list()
 
     def load_background_images(self, bg_img_path_list):
         # load background images
@@ -127,12 +148,6 @@ class LevelEditorMain:
             self.bg_img_list.append(pygame.image.load(bg_img_path).convert_alpha())
 
         return self.bg_img_list
-
-#pine1_img = pygame.image.load('img/Background/pine1.png').convert_alpha()
-#pine2_img = pygame.image.load('img/Background/pine2.png').convert_alpha()
-#mountain_img = pygame.image.load('img/Background/mountain.png').convert_alpha()
-#sky_img = pygame.image.load('img/Background/sky_cloud.png').convert_alpha()
-
 
     # create function for drawing background
     def draw_bg(self):
@@ -152,8 +167,6 @@ class LevelEditorMain:
         # horizontal lines
         for c in range(self.ROWS + 1):
             pygame.draw.line(self.screen, WHITE, (0, c * self.tileset_config.tile_size), (self.SCREEN_WIDTH, c * self.tileset_config.tile_size))
-
-
 
     def load_tile_images(self, dir_path):
         # store tiles in a list
@@ -199,7 +212,7 @@ class LevelEditorMain:
         pickle_out = open(file_path_name, 'wb')
         pickle.dump({"world_data": self.world_data, 
                      "tileset_config": self.tileset_config,
-                     "graph_data": graph_data}, pickle_out)
+                     "graph_data": self.graph_data}, pickle_out)
         pickle_out.close()
 
     def load_map(self, file_path):
@@ -247,6 +260,7 @@ class LevelEditorMain:
             self.draw_bg()
             self.draw_grid()
             self.world_data.draw_world(self.screen, self.scroll, self.img_list)
+            self.world_data.draw_characters(self.screen, self.img_player_instance, self.img_enemy_instance)
             self.graph_data.draw_graph(self.screen, self.scroll, self.img_node, self.img_node_selected, self.font_graph)
 
             draw_text(self.screen, f'Current Level: {self.world_data.level}', self.font, WHITE, 10, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 90)
@@ -271,9 +285,10 @@ class LevelEditorMain:
                 btn.draw(self.screen)
 
             # draw obstacle markers
-            for obstacle_idx in self.tile_obstacles:
-                x_pos = self.SCREEN_WIDTH + (int(obstacle_idx % self.tileset_config.TILE_PANEL_COLS) * self.tileset_config.tile_size_w + self.tileset_config.tile_size_w) * self.tileset_config.tile_scale_factor
-                y_pos = (int(obstacle_idx / self.tileset_config.TILE_PANEL_COLS) * self.tileset_config.tile_size_w + self.tileset_config.tile_size_h / 2) * self.tileset_config.tile_scale_factor
+            for obstacle_idx in self.tileset_config.tile_obstacles:
+                tile_rect = self.button_list[obstacle_idx].rect
+                x_pos = tile_rect.x + tile_rect.width + 2
+                y_pos = tile_rect.y + tile_rect.height/2 
                 self.screen.blit(self.img_obstacle, (x_pos, y_pos))
 
             # highlight the selected tile or special button
@@ -344,6 +359,12 @@ class LevelEditorMain:
                         # update graph value 
                         if self.special_btn_idx == self.GRAPH_IDX:
                             self.graph_data.update_value(x, y)
+
+                        # update player pos
+                        if self.special_btn_idx == self.PLAYER_IDX:
+                            self.world_data.add_character_data("player", "player", 100, x, y, self.scroll)
+                        elif self.special_btn_idx == self.ENEMY_IDX:
+                            self.world_data.add_character_data("enemy", "catcher", 100, x, y, self.scroll)
                     else:
                         if self.save_button.check_button_click():
                             self.open_save_dialog = True
@@ -358,7 +379,7 @@ class LevelEditorMain:
                                 self.current_tile = idx
                                 self.special_btn_idx = None
                             elif self.current_tile == idx and button_click == button.MouseClick.RIGHT:
-                                self.tile_obstacles.append(idx)
+                                self.tileset_config.tile_obstacles.append(idx)
 
                         for idx, btn in enumerate(self.special_button_list):
                             if btn.check_button_click():

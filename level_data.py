@@ -2,6 +2,7 @@ import pygame
 from level_colors import *
 from level_text import *
 from collections import defaultdict
+from dataclasses import dataclass
 
 
 class TilesetConfig:
@@ -11,8 +12,19 @@ class TilesetConfig:
         self.tile_size_h = tile_size_h
         self.tile_scale_factor = tileset_scale_factor
         self.tile_size = screen_height // rows # self.tile_size_w * self.tile_scale_factor
+        self.tile_obstacles = list()
         self.current_tile = None
         self.TILE_PANEL_COLS = 8
+
+
+@dataclass
+class CharacterData:
+    name: str 
+    x_pos: int
+    y_pos: int
+    obj_id: str
+    obj_type: str
+    health: int
 
 
 # create empty tile list
@@ -34,6 +46,9 @@ class WorldData:
         self.max_cols = max_cols
         self.level:int = 0
         self.tileset_config = tileset_config
+        self.character_dict = dict()
+        self.obj_id_player = 0
+        self.obj_id_enemy = 0
 
         for lyr in range(self.MAX_LAYERS):
             for row in range(self.max_rows):
@@ -52,6 +67,26 @@ class WorldData:
                         if tile >= 0:
                             screen.blit(img_list[tile], (x * self.tileset_config.tile_size - scroll, 
                                 y * self.tileset_config.tile_size))
+
+    def draw_characters(self, screen, img_player, img_enemy):
+        for k, char_data in self.character_dict.items():
+            img = img_player if k == "player" else img_enemy
+            screen.blit(img, (char_data.x_pos, char_data.y_pos))
+
+    def add_character_data(self, name, obj_type, health, x, y, scroll):
+        x_pos = x * self.tileset_config.tile_size - scroll + self.tileset_config.tile_size / 2
+        y_pos = y * self.tileset_config.tile_size + self.tileset_config.tile_size / 2
+
+        if obj_type == "player":
+            key = obj_type
+            obj_id = self.obj_id_player 
+        else: 
+            obj_id = self.obj_id_enemy
+            key = f"{obj_type}_{obj_id}"
+            self.obj_id_enemy += 1
+
+        cd = CharacterData(name, x_pos, y_pos, obj_id, obj_type, health)
+        self.character_dict[key] = cd
 
     def update_tile_value(self, x, y, current_tile):
         # update tile value
