@@ -76,7 +76,7 @@ class LevelEditorMain:
 
         # define fonts
         self.font = pygame.font.SysFont('Futura', 30)
-        self.font = pygame.font.SysFont('Futura', 20)
+        self.font_small = pygame.font.SysFont('Futura', 20)
         self.font_graph = pygame.font.SysFont('Futura', 25, bold=True)
 
         # gui elements
@@ -104,39 +104,29 @@ class LevelEditorMain:
         self.load_tileset_button = button.Button(self.SCREEN_WIDTH // 2 + 250, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 50, 
                 [load_tileset_img, load_tileset_img_hovering, load_tileset_img_clicked], 1)
 
-        self.open_save_dialog = False
-        self.open_load_dialog = False
-        self.open_load_tileset_dialog = False
-
         # special buttons
         self.special_button_list = list()
         self.special_btn_idx = None
 
-        # graph button
-        img_graph_mode = pygame.image.load('img/graph_mode.png').convert_alpha()
-        img_graph_mode = pygame.transform.scale(img_graph_mode, (self.tileset_config.tile_size, self.tileset_config.tile_size))
-        graph_mode_btn = button.Button(self.SCREEN_WIDTH + 20, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 80, [img_graph_mode], 1)
-        self.special_button_list.append(graph_mode_btn)
+        x_btn_pos = self.SCREEN_WIDTH + 20
+        y_btn_pos = self.SCREEN_HEIGHT + self.LOWER_MARGIN - 80 
 
-        # load graph node images
+        for img_path in ['img/graph_mode.png', 'img/player_btn.png', 'img/enemy_btn.png', 'img/trigger_btn.png', 'img/action_btn.png']:
+            img = pygame.image.load(img_path).convert_alpha()
+            img = pygame.transform.scale(img, (self.tileset_config.tile_size, self.tileset_config.tile_size))
+            btn = button.Button(x_btn_pos, y_btn_pos, [img], 1)
+            self.special_button_list.append(btn)
+            x_btn_pos += btn.rect.width
+
+        # load special images 
         self.img_node = pygame.image.load('img/node.png').convert_alpha()
         self.img_node = pygame.transform.scale(self.img_node, (int(self.tileset_config.tile_size / 2), int(self.tileset_config.tile_size / 2)))
         self.img_node_selected = pygame.image.load('img/node_selected.png').convert_alpha()
         self.img_node_selected = pygame.transform.scale(self.img_node_selected, (int(self.tileset_config.tile_size / 2), int(self.tileset_config.tile_size / 2)))
-
-        # player button
-        img_player_btn = pygame.image.load('img/player_btn.png').convert_alpha()
-        img_player_btn = pygame.transform.scale(img_player_btn, (self.tileset_config.tile_size, self.tileset_config.tile_size))
-        player_btn = button.Button(self.SCREEN_WIDTH + graph_mode_btn.rect.width + 20, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 80, [img_player_btn], 1)
-        self.special_button_list.append(player_btn)
         self.img_player_instance = pygame.image.load('img/player_instance.png').convert_alpha()
-
-        # enemy button
-        img_enemy_btn = pygame.image.load('img/enemy_btn.png').convert_alpha()
-        img_enemy_btn = pygame.transform.scale(img_enemy_btn, (self.tileset_config.tile_size, self.tileset_config.tile_size))
-        enemy_btn = button.Button(self.SCREEN_WIDTH + graph_mode_btn.rect.width + player_btn.rect.width + 20, self.SCREEN_HEIGHT + self.LOWER_MARGIN -80, [img_enemy_btn], 1)
-        self.special_button_list.append(enemy_btn)
         self.img_enemy_instance = pygame.image.load('img/enemy_instance.png').convert_alpha()
+        self.img_trigger_instance = pygame.image.load('img/trigger_instance.png').convert_alpha()
+        self.img_action_instance = pygame.image.load('img/action_instance.png').convert_alpha()
 
         # obstacle marker
         self.img_obstacle = pygame.image.load('img/wall.png').convert_alpha()
@@ -260,7 +250,7 @@ class LevelEditorMain:
             self.draw_bg()
             self.draw_grid()
             self.world_data.draw_world(self.screen, self.scroll, self.img_list)
-            self.world_data.draw_characters(self.screen, self.img_player_instance, self.img_enemy_instance)
+            self.world_data.draw_characters(self.screen, self.img_player_instance, self.img_enemy_instance, self.font_small)
             self.graph_data.draw_graph(self.screen, self.scroll, self.img_node, self.img_node_selected, self.font_graph)
 
             draw_text(self.screen, f'Current Level: {self.world_data.level}', self.font, WHITE, 10, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 90)
@@ -312,18 +302,6 @@ class LevelEditorMain:
             for btn in self.special_button_list:
                 btn.update()
 
-            if self.open_save_dialog:
-                self.file_dialog_save = UIFileDialog(pygame.Rect(160, 50, 440, 500), self.ui_manager, window_title="Save map data...", initial_file_path="./")
-            elif self.open_load_dialog:
-                # file_path = easygui.fileopenbox(msg="Select file to open...", title="Open...", filetypes=["*.bin"])
-                self.file_dialog_load = UIFileDialog(pygame.Rect(160, 50, 440, 500), self.ui_manager, window_title="Load map data...", initial_file_path="./")
-            elif self.open_load_tileset_dialog:
-                self.file_dialog_tileset = UIFileDialog(pygame.Rect(160, 50, 440, 500), self.ui_manager, window_title="Choose tileset directory...",  initial_file_path="./", allow_picking_directories=True)
-
-            self.open_save_dialog = False
-            self.open_load_dialog = False
-            self.open_load_tileset_dialog = False
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.run = False
@@ -334,13 +312,16 @@ class LevelEditorMain:
                         print(f"saving data to {event.text}")
                         # file_path_name = easygui.filesavebox("Select save file path...", "Save...", f"lvl_{level}_data.bin", ["*.bin"])
                         self.save_map(event.text)
+                        self.file_dialog_save = None
                     if event.ui_element == self.file_dialog_load:
                         print(f"loading data from file {event.text}")
                         self.world_data, self.graph_data, self.tileset_config, self.img_list, self.button_list = self.load_map(event.text)
+                        self.file_dialog_load = None
                     if event.ui_element == self.file_dialog_tileset:
                         print(f"loading tileset {event.text}")
                         tileset_dir_path = event.text
                         self.img_list, self.button_list = self.load_tileset(event.text)
+                        self.file_dialog_tileset = None
 
                 # mouse events
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -351,7 +332,7 @@ class LevelEditorMain:
 
                     # check that the coordinates are within the map area
                     # only process interactions on the map if no file dialog is open!
-                    if all([not fd for fd in [self.open_save_dialog, self.open_load_dialog, self.open_load_tileset_dialog]]) and pos[0] < self.SCREEN_WIDTH and pos[1] < self.SCREEN_HEIGHT:
+                    if all([fd is None for fd in [self.file_dialog_save, self.file_dialog_load, self.file_dialog_tileset]]) and pos[0] < self.SCREEN_WIDTH and pos[1] < self.SCREEN_HEIGHT:
                         # update tile value
                         if self.current_tile is not None:
                             self.world_data.update_tile_value(x, y, self.current_tile)
@@ -367,11 +348,12 @@ class LevelEditorMain:
                             self.world_data.add_character_data("enemy", "catcher", 100, x, y, self.scroll)
                     else:
                         if self.save_button.check_button_click():
-                            self.open_save_dialog = True
+                            self.file_dialog_save = UIFileDialog(pygame.Rect(160, 50, 440, 500), self.ui_manager, window_title="Save map data...", initial_file_path="./")
                         if self.load_button.check_button_click():
-                            self.open_load_dialog = True
+                            # file_path = easygui.fileopenbox(msg="Select file to open...", title="Open...", filetypes=["*.bin"])
+                            self.file_dialog_load = UIFileDialog(pygame.Rect(160, 50, 440, 500), self.ui_manager, window_title="Load map data...", initial_file_path="./")
                         if self.load_tileset_button.check_button_click():
-                            self.open_load_tileset_dialog = True
+                            self.file_dialog_tileset = UIFileDialog(pygame.Rect(160, 50, 440, 500), self.ui_manager, window_title="Choose tileset directory...",  initial_file_path="./", allow_picking_directories=True)
 
                         for idx, btn in enumerate(self.button_list):
                             button_click = btn.check_button_click()

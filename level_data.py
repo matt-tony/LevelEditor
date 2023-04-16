@@ -27,6 +27,23 @@ class CharacterData:
     health: int
 
 
+@dataclass
+class TriggerData:
+    trigger_id: str
+    conditions: list
+
+
+@dataclass
+class ActionData:
+    action_id: str
+    data: dict
+
+
+class EventData:
+    def __init__(self):
+        self.trigger_action_dict = dict()
+
+        
 # create empty tile list
 # lyr 0: Background image layer
 # lyr 1: Background layer 1 (default tile layer)
@@ -68,14 +85,15 @@ class WorldData:
                             screen.blit(img_list[tile], (x * self.tileset_config.tile_size - scroll, 
                                 y * self.tileset_config.tile_size))
 
-    def draw_characters(self, screen, img_player, img_enemy):
+    def draw_characters(self, screen, img_player, img_enemy, font):
         for k, char_data in self.character_dict.items():
             img = img_player if k == "player" else img_enemy
             screen.blit(img, (char_data.x_pos, char_data.y_pos))
+            draw_text(screen, f'{char_data.obj_id}', font, GRAY, char_data.x_pos + img.get_rect().width / 3, char_data.y_pos + img.get_rect().height/3)
 
     def add_character_data(self, name, obj_type, health, x, y, scroll):
-        x_pos = x * self.tileset_config.tile_size - scroll + self.tileset_config.tile_size / 2
-        y_pos = y * self.tileset_config.tile_size + self.tileset_config.tile_size / 2
+        x_pos = x * self.tileset_config.tile_size - scroll # + self.tileset_config.tile_size / 2
+        y_pos = y * self.tileset_config.tile_size # + self.tileset_config.tile_size / 2
 
         if obj_type == "player":
             key = obj_type
