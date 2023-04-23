@@ -12,6 +12,7 @@ from collections import defaultdict
 from level_data import TilesetConfig, CharacterData, WorldData, GraphData
 from level_colors import *
 from level_text import *
+from level_windows import EventWindow, EventPart
 from dataclasses import dataclass
 
 
@@ -84,6 +85,7 @@ class LevelEditorMain:
         self.file_dialog_tileset = None
         self.file_dialog_save = None
         self.file_dialog_load = None
+        self.event_window = None 
 
         # create buttons
         # save and load buttons
@@ -254,10 +256,10 @@ class LevelEditorMain:
             self.graph_data.draw_graph(self.screen, self.scroll, self.img_node, self.img_node_selected, self.font_graph)
 
             draw_text(self.screen, f'Current Level: {self.world_data.level}', self.font, WHITE, 10, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 90)
-            draw_text(self.screen, '(Press UP or DOWN to change level)', self.font, WHITE, 200, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 85)
+            draw_text(self.screen, '(Press UP or DOWN to change level)', self.font_small, WHITE, 200, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 85)
             draw_text(self.screen, f'Current Layer: {self.world_data.curr_lyr}', self.font, WHITE, 10, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 60)
-            draw_text(self.screen, f'(Press 1-{self.world_data.MAX_LAYERS} to change layer)', self.font, WHITE, 200, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 55)
-            draw_text(self.screen, f'{self.world_data.LYR_DESCR[self.world_data.curr_lyr]}', self.font, WHITE, 10, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 40)
+            draw_text(self.screen, f'(Press 1-{self.world_data.MAX_LAYERS} to change layer)', self.font_small, WHITE, 200, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 55)
+            draw_text(self.screen, f'{self.world_data.LYR_DESCR[self.world_data.curr_lyr]}', self.font_small, WHITE, 10, self.SCREEN_HEIGHT + self.LOWER_MARGIN - 40)
 
             # draw buttons
             self.save_button.draw(self.screen)
@@ -322,6 +324,8 @@ class LevelEditorMain:
                         tileset_dir_path = event.text
                         self.img_list, self.button_list = self.load_tileset(event.text)
                         self.file_dialog_tileset = None
+                if event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED and self.event_window and event.ui_element == self.event_window.drop_menu:
+                    self.event_window.drop_menu_item_changed(event.text)
 
                 # mouse events
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -341,11 +345,16 @@ class LevelEditorMain:
                         if self.special_btn_idx == self.GRAPH_IDX:
                             self.graph_data.update_value(x, y)
 
-                        # update player pos
+                        # update character pos
                         if self.special_btn_idx == self.PLAYER_IDX:
                             self.world_data.add_character_data("player", "player", 100, x, y, self.scroll)
                         elif self.special_btn_idx == self.ENEMY_IDX:
                             self.world_data.add_character_data("enemy", "catcher", 100, x, y, self.scroll)
+                        elif self.event_window is None and self.special_btn_idx == self.TRIGGER_IDX:
+                            self.event_window = EventWindow(EventPart.TRIGGER, 1, x, y, self.ui_manager)
+                        elif self.event_window is None and self.special_btn_idx == self.ACTION_IDX:
+                            self.event_window = EventWindow(EventPart.ACTION, 1, x, y, self.ui_manager)
+
                     else:
                         if self.save_button.check_button_click():
                             self.file_dialog_save = UIFileDialog(pygame.Rect(160, 50, 440, 500), self.ui_manager, window_title="Save map data...", initial_file_path="./")

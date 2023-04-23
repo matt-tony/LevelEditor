@@ -1,0 +1,39 @@
+{
+	"create": {
+		"object_type": "type",
+		"pos": [0, 0],
+		"health": 100
+	},
+	"delete": {
+		"object_id": "object_id"
+	},
+	"move": {
+		"object_id": "object",
+		"pos_list": [[0, 0], [100, 0]]
+	},
+	"set_pos": {
+		"object_id": "object",
+		"pos": [0, 0]
+	},
+	"change_state": {
+		"object_id": "object",
+		"new_state": "state"
+	},
+	"play_sound": {
+		"file_path": "file_path"
+	},
+	"cam_follow_object": "object_id",
+	"start_countdown": { 
+		"timer_id": "id",
+		"start_seconds": 0.0
+	},
+	"timer": {
+		"timer_id": "id",
+		"action": "start_timer"
+	},
+
+	"ai_set_behavior": {
+		"object_id": "object",
+		"behavior": "behavior"
+	}  
+} 
