@@ -8,15 +8,15 @@
 		"seconds": 0.0
 	},
 	"has_item": {
-		"object_id": "object_id",
+		"obj_id": "object_id",
 		"item_id": "item_id"
 	},
 	"in_state": {
-		"object_id": "object_id",
+		"obj_id": "object_id",
 		"state": "state"
 	},
 	"health": {
-		"object_id": "object_id",
+		"obj_id": "object_id",
 		"value": 100.0
 	}
 }

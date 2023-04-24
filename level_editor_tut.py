@@ -326,6 +326,8 @@ class LevelEditorMain:
                         self.file_dialog_tileset = None
                 if event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED and self.event_window and event.ui_element == self.event_window.drop_menu:
                     self.event_window.drop_menu_item_changed(event.text)
+                if event.type == pygame_gui.UI_BUTTON_PRESSED and self.event_window and event.ui_element == self.event_window.btn_add:
+                    self.event_window.add_button_pressed()
 
                 # mouse events
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -351,9 +353,9 @@ class LevelEditorMain:
                         elif self.special_btn_idx == self.ENEMY_IDX:
                             self.world_data.add_character_data("enemy", "catcher", 100, x, y, self.scroll)
                         elif self.event_window is None and self.special_btn_idx == self.TRIGGER_IDX:
-                            self.event_window = EventWindow(EventPart.TRIGGER, 1, x, y, self.ui_manager)
+                            self.event_window = EventWindow(EventPart.TRIGGER, 1, x, y, list(self.world_data.character_dict.keys()), self.ui_manager)
                         elif self.event_window is None and self.special_btn_idx == self.ACTION_IDX:
-                            self.event_window = EventWindow(EventPart.ACTION, 1, x, y, self.ui_manager)
+                            self.event_window = EventWindow(EventPart.ACTION, 1, x, y, list(self.world_data.character_dict.keys()), self.ui_manager)
 
                     else:
                         if self.save_button.check_button_click():

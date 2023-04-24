@@ -2,6 +2,7 @@ import pygame
 import pygame_gui
 import json
 from enum import Enum
+from collections import defaultdict
 
 
 class EventPart(Enum):
@@ -13,10 +14,12 @@ class EventWindow(pygame_gui.elements.UIWindow):
     EVENT_WINDOW_WIDTH=400
     EVENT_WINDOW_HEIGHT=500
     
-    def __init__(self, event_part: EventPart, obj_id, x_pos, y_pos, ui_manager, window_position=(100, 100)):
+    def __init__(self, event_part: EventPart, obj_id, x_pos, y_pos, world_obj_ids, ui_manager, window_position=(100, 100)):
         super().__init__(rect=pygame.Rect(window_position, (self.EVENT_WINDOW_WIDTH, self.EVENT_WINDOW_HEIGHT)), manager=ui_manager, window_display_title=event_part.value)
         x = 2
         y = 20
+        self.content_info = defaultdict(list)
+        self.world_obj_ids = world_obj_ids
 
         # obj id label
         self.obj_id = obj_id
@@ -36,14 +39,14 @@ class EventWindow(pygame_gui.elements.UIWindow):
         self.type_label.normal_text = (255, 255, 255)
 
         # drop menu trigger type
-        drop_menu_rect = pygame.Rect((x + 120, y), (200, 30))
         self.type_data = self.__load_event_part_types__(event_part)
+        drop_menu_rect = pygame.Rect((x + 120, y), (200, 30))
         #items = [('Item 1', 'item1'), ('Item 2', 'item2'), ('Item 3', 'item3')]
         first_item = list(self.type_data.keys())[0]
         self.drop_menu = pygame_gui.elements.ui_drop_down_menu.UIDropDownMenu(options_list=list(self.type_data.keys()),
                                                                              starting_option=first_item,
                                                                              relative_rect=drop_menu_rect,
-                                                                             manager=ui_manager,
+                                                                             manager=self.ui_manager,
                                                                              container=self)
         y += 40
         self.type_dependent_x_start = x
@@ -65,10 +68,16 @@ class EventWindow(pygame_gui.elements.UIWindow):
 
         return data
 
-    def __create_position_field__(self, x, y, x_pos, y_pos):
+    def __create_label__(self, x, y, text):
         # label
         label_rect = pygame.Rect((x, y), (100, 30))
-        label = pygame_gui.elements.UILabel(relative_rect=label_rect, text="Position", manager=self.ui_manager, container=self)
+        label = pygame_gui.elements.UILabel(relative_rect=label_rect, text=text, manager=self.ui_manager, container=self)
+
+        return label
+
+    def __create_position_field__(self, x, y, x_pos, y_pos):
+        label = self.__create_label__(x, y, "Position")
+
         # position field
         pos_rect = pygame.Rect((x + 120, y), (100, 30))
         pos_label = pygame_gui.elements.UILabel(relative_rect=pos_rect, text=f"({x_pos}, {y_pos})", manager=self.ui_manager, container=self)
@@ -85,21 +94,29 @@ class EventWindow(pygame_gui.elements.UIWindow):
         self.type_field_labels = list()
         self.type_fields = list()
 
-        # text line entry 
         for k, _ in self.type_data[item].items():
             if k == "pos":
                 continue
-            label, te = self.__create_text_entry_field__(x, y, k)
+            if k == "obj_id":
+                label, field = self.__create_drop_menu_field__(x, y, k, self.world_obj_ids)
+            else:
+                label, field = self.__create_text_entry_field__(x, y, k)
             self.type_field_labels.append(label)
-            self.type_fields.append(te)
+            self.type_fields.append(field)
             y += 40
 
         return x, y
-        
+    
+    def __create_drop_menu_field__(self, x, y, name, item_list):
+        label = self.__create_label__(x, y, name)
+        drop_menu_rect = pygame.Rect((x + 120, y), (200, 30))
+        drop_menu = pygame_gui.elements.ui_drop_down_menu.UIDropDownMenu(options_list=item_list, 
+                                        starting_option=item_list[0], relative_rect=drop_menu_rect,
+                                        manager=self.ui_manager, container=self)
+        return label, drop_menu
+
     def __create_text_entry_field__(self, x, y, label_name):
-        # label
-        label_rect = pygame.Rect((x, y), (100, 30))
-        label = pygame_gui.elements.UILabel(relative_rect=label_rect, text=label_name, manager=self.ui_manager, container=self)
+        label = self.__create_label__(x, y, label_name)
 
         # text entry field
         te_rect = pygame.Rect((x + 120, y), (100, 30))
@@ -119,8 +136,11 @@ class EventWindow(pygame_gui.elements.UIWindow):
         y += 40
 
         # event part info
+        print(self.content_info)
+        content = json.dumps(self.content_info)
+        print(content)
         textbox_rect = pygame.Rect((x, y), (350, 150))
-        self.textfield = pygame_gui.elements.UITextBox(relative_rect=textbox_rect, html_text="{<br>}", manager=self.ui_manager, container=self)
+        self.textfield = pygame_gui.elements.UITextBox(relative_rect=textbox_rect, html_text=content, manager=self.ui_manager, container=self)
         self.textfield.enable()
         y += 150
 
@@ -145,4 +165,17 @@ class EventWindow(pygame_gui.elements.UIWindow):
             x, y = self.__create_type_dependent_fields__(self.type_dependent_x_start, self.type_dependent_y_start, selected_item)
         x, y = self.__add_event_part_info__(x, y)
         self.__add_cancel_ok_buttons__(x, y)
+
+    def add_button_pressed(self):
+        new_content_info = dict()
+        for k, v in zip(self.type_field_labels, self.type_fields):
+            print(type(v))
+            if type(v) == pygame_gui.elements.UIDropDownMenu:
+                value = v.selected_option
+            else:
+                value = v.get_text()
+            new_content_info[k.text] = value
+        self.content_info[self.drop_menu.selected_option].append(new_content_info)
+        content = json.dumps(self.content_info)
+        self.textfield.set_text(content)
 

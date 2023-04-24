@@ -1,22 +1,22 @@
 {
 	"create": {
-		"object_type": "type",
+		"obj_type": "type",
 		"pos": [0, 0],
 		"health": 100
 	},
 	"delete": {
-		"object_id": "object_id"
+		"obj_id": "object_id"
 	},
 	"move": {
-		"object_id": "object",
+		"obj_id": "object",
 		"pos_list": [[0, 0], [100, 0]]
 	},
 	"set_pos": {
-		"object_id": "object",
+		"obj_id": "object",
 		"pos": [0, 0]
 	},
 	"change_state": {
-		"object_id": "object",
+		"obj_id": "object",
 		"new_state": "state"
 	},
 	"play_sound": {
@@ -33,7 +33,7 @@
 	},
 
 	"ai_set_behavior": {
-		"object_id": "object",
+		"obj_id": "object",
 		"behavior": "behavior"
 	}  
 } 

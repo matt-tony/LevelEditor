@@ -30,12 +30,14 @@ class CharacterData:
 @dataclass
 class TriggerData:
     trigger_id: str
+    trigger_type: str
     conditions: list
 
 
 @dataclass
 class ActionData:
     action_id: str
+    action_type: str
     data: dict
 
 
