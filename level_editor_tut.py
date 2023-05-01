@@ -109,15 +109,21 @@ class LevelEditorMain:
         # special buttons
         self.special_button_list = list()
         self.special_btn_idx = None
+        img_show = pygame.image.load("img/show_icon.png")
+        img_show = pygame.transform.scale(img_show, (self.tileset_config.tile_size, self.tileset_config.tile_size))
+        img_hide = pygame.image.load("img/hide_icon.png")
+        img_hide = pygame.transform.scale(img_show, (self.tileset_config.tile_size, self.tileset_config.tile_size))
+        self.show_special_btn_list = list()
 
-        x_btn_pos = self.SCREEN_WIDTH + 20
-        y_btn_pos = self.SCREEN_HEIGHT + self.LOWER_MARGIN - 80 
+        x_btn_pos = self.SCREEN_WIDTH 
+        y_btn_pos = self.SCREEN_HEIGHT + self.LOWER_MARGIN - 100 
 
         for img_path in ['img/graph_mode.png', 'img/player_btn.png', 'img/enemy_btn.png', 'img/trigger_btn.png', 'img/action_btn.png']:
             img = pygame.image.load(img_path).convert_alpha()
             img = pygame.transform.scale(img, (self.tileset_config.tile_size, self.tileset_config.tile_size))
             btn = button.Button(x_btn_pos, y_btn_pos, [img], 1)
             self.special_button_list.append(btn)
+            self.show_special_btn_list.append(button.Button(x_btn_pos, y_btn_pos + img.get_rect().height, [img_show], 1))
             x_btn_pos += btn.rect.width
 
         # load special images 
@@ -128,7 +134,9 @@ class LevelEditorMain:
         self.img_player_instance = pygame.image.load('img/player_instance.png').convert_alpha()
         self.img_enemy_instance = pygame.image.load('img/enemy_instance.png').convert_alpha()
         self.img_trigger_instance = pygame.image.load('img/trigger_instance.png').convert_alpha()
+        self.img_trigger_instance_selected = pygame.image.load('img/trigger_instance_selected.png').convert_alpha()
         self.img_action_instance = pygame.image.load('img/action_instance.png').convert_alpha()
+        self.img_action_instance_selected = pygame.image.load('img/action_instance_selected.png').convert_alpha()
 
         # obstacle marker
         self.img_obstacle = pygame.image.load('img/wall.png').convert_alpha()
@@ -267,6 +275,9 @@ class LevelEditorMain:
             self.load_tileset_button.draw(self.screen)
 
             for btn in self.special_button_list:
+                btn.draw(self.screen)
+
+            for btn in self.show_special_btn_list:
                 btn.draw(self.screen)
 
             # draw tile panel and tiles
