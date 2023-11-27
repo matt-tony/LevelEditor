@@ -41,6 +41,10 @@ class LevelEditorMain:
     ENEMY_IDX = 2
     TRIGGER_IDX = 3
     ACTION_IDX = 4
+    # File data keys
+    DATA_KEY_TILESET_CONFIG = "tileset_config"
+    DATA_KEY_WORLD_DATA = "world_data"
+    DATA_KEY_GRAPH_DATA = "graph_data"
 
     def __init__(self):
         pygame.init()
@@ -210,9 +214,9 @@ class LevelEditorMain:
 
         # alternative pickle method
         pickle_out = open(file_path_name, 'wb')
-        pickle.dump({"world_data": self.world_data, 
-                     "tileset_config": self.tileset_config,
-                     "graph_data": self.graph_data}, pickle_out)
+        pickle.dump({LevelEditorMain.DATA_KEY_WORLD_DATA: self.world_data, 
+            LevelEditorMain.DATA_KEY_TILESET_CONFIG: self.tileset_config,
+            LevelEditorMain.DATA_KEY_GRAPH_DATA: self.graph_data}, pickle_out)
         pickle_out.close()
 
     def load_map(self, file_path):
@@ -235,9 +239,9 @@ class LevelEditorMain:
             # alternative pickle method
             pickle_in = open(file_path, 'rb')
             data_dict = pickle.load(pickle_in)
-            self.tileset_config = data_dict["tileset_config"]
-            self.world_data = data_dict["world_data"]
-            self.graph_data = data_dict["graph_data"]
+            self.tileset_config = data_dict[LevelEditorMain.DATA_KEY_TILESET_CONFIG]
+            self.world_data = data_dict[LevelEditorMain.DATA_KEY_WORLD_DATA]
+            self.graph_data = data_dict[LevelEditorMain.DATA_KEY_GRAPH_DATA]
             self.img_list, self.button_list = self.load_tileset(self.tileset_config.tileset_dir_path)
 
             return self.world_data, self.graph_data, self.tileset_config, self.img_list, self.button_list
@@ -340,6 +344,35 @@ class LevelEditorMain:
                 if event.type == pygame_gui.UI_BUTTON_PRESSED and self.event_window and event.ui_element == self.event_window.btn_add:
                     self.event_window.add_button_pressed()
 
+                # keyboard presses
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        level += 1
+                    if event.key == pygame.K_DOWN and level > 0:
+                        level -= 1
+                    if event.key == pygame.K_LEFT:
+                        self.scroll_left = True
+                    if event.key == pygame.K_RIGHT:
+                        self.scroll_right = True
+                    if event.key == pygame.K_RSHIFT:
+                        self.scroll_speed = 5
+                    if event.key == pygame.K_1:
+                        self.world_data.curr_lyr = 1
+                    if event.key == pygame.K_2:
+                        self.world_data.curr_lyr = 2
+                    if event.key == pygame.K_3:
+                        self.world_data.curr_lyr = 3
+                    if event.key == pygame.K_4:
+                        self.world_data.curr_lyr = 4
+
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_LEFT:
+                        self.scroll_left = False
+                    if event.key == pygame.K_RIGHT:
+                        self.scroll_right = False
+                    if event.key == pygame.K_RSHIFT:
+                        self.scroll_speed = 1
+
                 # mouse events
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     # get mouse position
@@ -350,10 +383,6 @@ class LevelEditorMain:
                     # check that the coordinates are within the map area
                     # only process interactions on the map if no file dialog is open!
                     if all([fd is None for fd in [self.file_dialog_save, self.file_dialog_load, self.file_dialog_tileset]]) and pos[0] < self.SCREEN_WIDTH and pos[1] < self.SCREEN_HEIGHT:
-                        # update tile value
-                        if self.current_tile is not None:
-                            self.world_data.update_tile_value(x, y, self.current_tile)
-                        
                         # update graph value 
                         if self.special_btn_idx == self.GRAPH_IDX:
                             self.graph_data.update_value(x, y)
@@ -398,38 +427,18 @@ class LevelEditorMain:
                         btn.check_button_up()
                     for btn in self.special_button_list:
                         btn.check_button_up()
-
-                # keyboard presses
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
-                        level += 1
-                    if event.key == pygame.K_DOWN and level > 0:
-                        level -= 1
-                    if event.key == pygame.K_LEFT:
-                        self.scroll_left = True
-                    if event.key == pygame.K_RIGHT:
-                        self.scroll_right = True
-                    if event.key == pygame.K_RSHIFT:
-                        self.scroll_speed = 5
-                    if event.key == pygame.K_1:
-                        self.world_data.curr_lyr = 1
-                    if event.key == pygame.K_2:
-                        self.world_data.curr_lyr = 2
-                    if event.key == pygame.K_3:
-                        self.world_data.curr_lyr = 3
-                    if event.key == pygame.K_4:
-                        self.world_data.curr_lyr = 4
-
-                if event.type == pygame.KEYUP:
-                    if event.key == pygame.K_LEFT:
-                        self.scroll_left = False
-                    if event.key == pygame.K_RIGHT:
-                        self.scroll_right = False
-                    if event.key == pygame.K_RSHIFT:
-                        self.scroll_speed = 1
-                
+            
+                # this is necessary to process events in the pygame gui manager
                 self.ui_manager.process_events(event)
 
+            # update tile value
+            mouse_click = pygame.mouse.get_pressed()
+            pos = pygame.mouse.get_pos()
+            if mouse_click[0] and self.current_tile is not None and pos[0] < self.SCREEN_WIDTH and pos[1] < self.SCREEN_HEIGHT:
+                x = (pos[0] + self.scroll) // self.tileset_config.tile_size
+                y = pos[1] // self.tileset_config.tile_size
+                self.world_data.update_tile_value(x, y, self.current_tile)
+                            
             self.ui_manager.update(time_delta)
             self.ui_manager.draw_ui(self.screen)
 
